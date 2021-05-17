@@ -1,7 +1,10 @@
-from os import name
+
+from os import name, replace
 import requests
 from bs4 import BeautifulSoup
 from GrammarData import *
+from pyredata import *
+
 
 
 #REFLEXIVEENGLISH, PREPOSITIONSSPANISH, REFLEXIVESPANISH
@@ -24,6 +27,7 @@ class Verb:
         self.eng_prepositions=None
         self.spa_definition=None
         self.spa_is_regular=None
+        self.total_data=None
 
     def VerbCheckerGerman(self,ger):
         #Pulling Information for RegularCheck.
@@ -52,8 +56,14 @@ class Verb:
 
         def PrepositionsAndCasesCheck():
             #Get the preposition's data.
-            url_p=requests.get(('https://www.woerter.net/verbs/usages/{}.htm').format(ger))
-            soup = BeautifulSoup(url_r.content, 'lxml')
+            if 'ü' in ger:
+                ger_umlaud=ger.replace("ü","u3")
+                url_p=requests.get(('https://www.woerter.net/verbs/usages/{}.html').format(ger_umlaud))
+                soup = BeautifulSoup(url_r.content, 'lxml')
+            else:
+                url_p=requests.get(('https://www.woerter.net/verbs/usages/{}.html').format(ger))
+                soup = BeautifulSoup(url_r.content, 'lxml')
+
             #Filtering the results
             p_data=soup.find_all('p')[6].get_text()
             #Cleaning them
@@ -87,21 +97,44 @@ class Verb:
                 return is_separable
         
         def Definition():
-            url_definition=requests.get(('https://www.duden.de/rechtschreibung/{}').format(ger))
+            if "ü" in self.ger:
+                ger_umlaud_correction=self.ger.replace("ü","ue")
+                url_definition=requests.get(('https://www.duden.de/rechtschreibung/{}').format(ger_umlaud_correction))
+                
+            else:
+                url_definition=requests.get(('https://www.duden.de/rechtschreibung/{}').format(ger))
+
             soup_definition_german = BeautifulSoup(url_definition.content, 'lxml')
             #Get relevant data for the R's functions (RegularCheck and ReflexiveCheck).
             raw_data=list(soup_definition_german.find_all(attrs={'class':'enumeration__text'}))
             final_data=raw_data[0].get_text()
             return final_data
 
+        def FillGermanDataTemplate(self): #Filling the template with verb's data.
+            
+            ger_prepositions_final={}
+
+            #Converting every preposition in the list into dictionaries keys, value will be filled manually. 
+            for element in self.ger_prepositions:
+                temp=('''{{"CASE":"{}","EXAMPLE":"None"}}''').format(self.ger_prepositions.get(element))
+                #temp=str(temp)
+                ger_prepositions_final[element]=temp
+
+            ger_prepositions_final=str(ger_prepositions_final).replace("'{","{").replace("}'",'}')
+
+            data_verbs_german=(template_german_verb).format(self.ger_auxiliar_verb,self.ger_definition,self.ger,self.ger_is_reflexive,self.ger_is_separable,ger_prepositions_final)
+            return data_verbs_german
+
         self.ger_definition=Definition()
-        
         self.ger_is_separable=SeparableCheck()
         self.ger_is_regular=RegularCheck()
         self.ger_prepositions=PrepositionsAndCasesCheck()
         ger_prepositions=self.ger_prepositions
         self.ger_auxiliar_verb=PastCheck()
         self.ger_is_reflexive=ReflexiveCheck(self,ger_prepositions)
+
+        data_verbs_german=FillGermanDataTemplate(self) #Filling the template with verb's data.
+        return data_verbs_german
 
     def VerbCheckerEnglish(self,eng):
         def TransitiveEnglish():
@@ -169,13 +202,25 @@ class Verb:
         
         def ReflexiveEnglish():
             pass
-        
-        
+
+        def FillEnglishDataTemplate(self): #Filling the template with verb's data.
+
+            eng_prepositions={}
+            #Converting every preposition in the list into dictionaries keys, value will be filled manually. 
+            
+            for preposition in self.eng_prepositions:
+                eng_prepositions[preposition]="None"
+
+            data_verbs_english=(template_english_verb).format(self.eng_definition,self.eng,self.eng_is_regular,self.eng_is_transitive,eng_prepositions)
+            return data_verbs_english
+
         self.eng_definition=Definition()
         self.eng_is_regular=RegularEnglish()
         self.eng_is_transitive=TransitiveEnglish()
         self.eng_prepositions=PrepositionsEnglish()
-        
+        self.data_verbs_english=FillEnglishDataTemplate(self)
+        return self.data_verbs_english
+
     def VerbCheckerSpanish(self,spa):
         def Definition():
             #making request
@@ -211,19 +256,37 @@ class Verb:
 
             #If there is an element in temporal_list means that irregular forms where found in the conjugation's table.
             if len(temporal_list)>0:
-                return "no"
+                return 0 #no
             else:
-                return "yes"
-
+                return 1 #yes
         
-        self_spa_definition=Definition()
-        self_spa_is_regular=RegularSpanish()
+        def FillSpanishDataTemplate(self): #Filling the template with verb's data.
+            data_verbs_spanish=(template_spanish_verb).format(self.spa_definition,self.spa_is_regular,self.spa)
+            return data_verbs_spanish
 
-    def VerbChecker(self,eng,spa,ger):
-        self.VerbCheckerSpanish(spa)
-        self.VerbCheckerEnglish(eng)
-        self.VerbCheckerGerman(ger)
-    
+
+
+        self.spa_definition=Definition()
+        self.spa_is_regular=RegularSpanish()
+        self.data_verbs_spanish=FillSpanishDataTemplate(self)
+        return self.data_verbs_spanish
+
+    def VerbChecker(self,eng,spa,ger): #GATHERS VERB'S RELATED DATA
+        self.data_verbs_spanish=self.VerbCheckerSpanish(spa) #SPANISH DATA
+        print("SPANISH DATA -- COMPLETED")
+        self.data_verbs_english=self.VerbCheckerEnglish(eng) #ENGLISH DATA
+        print("ENGLISH DATA -- COMPLETED")
+        self.data_verbs_german=self.VerbCheckerGerman(ger) #GERMAN DATA
+        print("GERMAN DATA -- COMPLETED")
+        self.total_data='{\n  '+'"'+self.eng+'":{'+self.data_verbs_english,self.data_verbs_german,self.data_verbs_spanish+'}'
+        print("DATA GATHERED")
+        temp=[]
+
+        for part in self.total_data:
+            part=part.replace('\\',"").replace("'",'"')
+            temp.append(part)
+        data="\n".join(temp)
+        return data
 
 
 
@@ -233,27 +296,10 @@ spa=play.spa
 eng=play.eng
 ger=play.ger
 #Search and organize data.
-play.VerbChecker(eng,spa,ger)
+data=play.VerbChecker(eng,spa,ger)
+
+PushVerb(eng,data)
 
 
 #print it.
-print(play.ger_prepositions, play.eng_prepositions)
-
-"""
-'DEFINITION':{} 
-'IS_SEPARABLE':{}
-'PREPOSITIONS':{}
-'AUXILIAR_VERB':{}
-'IS_REGULAR':{}
-
-'DEFINITION':{}
-'IS_REGULAR':{}
-'IS_TRANSITIVE':{}
-'PREPOSITIONS':{}
-
-'DEFINITION':{}
-'IS_REGULAR':{}
-
-
-
-"""
+#print(play.ger_prepositions, play.eng_prepositions)
