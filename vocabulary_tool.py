@@ -259,6 +259,7 @@ class Verb:
                 return 0 #no
             else:
                 return 1 #yes
+
         
         def FillSpanishDataTemplate(self): #Filling the template with verb's data.
             data_verbs_spanish=(template_spanish_verb).format(self.spa_definition,self.spa_is_regular,self.spa)
@@ -288,6 +289,30 @@ class Verb:
         data="\n".join(temp)
         return data
 
+        
+        def FillSpanishDataTemplate(self): #Filling the template with verb's data.
+            data_verbs_spanish=(template_spanish_verb).format(self.spa_definition,self.spa_is_regular,self.spa)
+            return data_verbs_spanish
+
+
+
+        self.spa_definition=Definition()
+        self.spa_is_regular=RegularSpanish()
+        self.data_verbs_spanish=FillSpanishDataTemplate(self)
+        return self.data_verbs_spanish
+
+    def VerbChecker(self,eng,spa,ger): #GATHERS VERB'S RELATED DATA
+        self.data_verbs_spanish=self.VerbCheckerSpanish(spa) #SPANISH DATA
+        self.data_verbs_english=self.VerbCheckerEnglish(eng) #ENGLISH DATA
+        self.data_verbs_german=self.VerbCheckerGerman(ger) #GERMAN DATA
+        self.total_data='{\n  '+'"'+self.eng+'":{'+self.data_verbs_english,self.data_verbs_german,self.data_verbs_spanish+'}'
+        
+        for part in self.total_data:
+            part=part.replace('\\',"").replace("'",'"')
+            print(part)
+
+
+
 
 
 #instance
@@ -296,9 +321,15 @@ spa=play.spa
 eng=play.eng
 ger=play.ger
 #Search and organize data.
+
 data=play.VerbChecker(eng,spa,ger)
 
 PushVerb(eng,data)
+
+
+
+play.VerbChecker(eng,spa,ger)
+
 
 
 #print it.
