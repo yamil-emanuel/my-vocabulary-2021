@@ -1,7 +1,10 @@
+
 from os import name, replace
 import requests
 from bs4 import BeautifulSoup
 from GrammarData import *
+from pyredata import *
+
 
 
 #REFLEXIVEENGLISH, PREPOSITIONSSPANISH, REFLEXIVESPANISH
@@ -53,8 +56,14 @@ class Verb:
 
         def PrepositionsAndCasesCheck():
             #Get the preposition's data.
-            url_p=requests.get(('https://www.woerter.net/verbs/usages/{}.htm').format(ger))
-            soup = BeautifulSoup(url_r.content, 'lxml')
+            if 'ü' in ger:
+                ger_umlaud=ger.replace("ü","u3")
+                url_p=requests.get(('https://www.woerter.net/verbs/usages/{}.html').format(ger_umlaud))
+                soup = BeautifulSoup(url_r.content, 'lxml')
+            else:
+                url_p=requests.get(('https://www.woerter.net/verbs/usages/{}.html').format(ger))
+                soup = BeautifulSoup(url_r.content, 'lxml')
+
             #Filtering the results
             p_data=soup.find_all('p')[6].get_text()
             #Cleaning them
@@ -88,7 +97,13 @@ class Verb:
                 return is_separable
         
         def Definition():
-            url_definition=requests.get(('https://www.duden.de/rechtschreibung/{}').format(ger))
+            if "ü" in self.ger:
+                ger_umlaud_correction=self.ger.replace("ü","ue")
+                url_definition=requests.get(('https://www.duden.de/rechtschreibung/{}').format(ger_umlaud_correction))
+                
+            else:
+                url_definition=requests.get(('https://www.duden.de/rechtschreibung/{}').format(ger))
+
             soup_definition_german = BeautifulSoup(url_definition.content, 'lxml')
             #Get relevant data for the R's functions (RegularCheck and ReflexiveCheck).
             raw_data=list(soup_definition_german.find_all(attrs={'class':'enumeration__text'}))
@@ -244,6 +259,36 @@ class Verb:
                 return 0 #no
             else:
                 return 1 #yes
+
+        
+        def FillSpanishDataTemplate(self): #Filling the template with verb's data.
+            data_verbs_spanish=(template_spanish_verb).format(self.spa_definition,self.spa_is_regular,self.spa)
+            return data_verbs_spanish
+
+
+
+        self.spa_definition=Definition()
+        self.spa_is_regular=RegularSpanish()
+        self.data_verbs_spanish=FillSpanishDataTemplate(self)
+        return self.data_verbs_spanish
+
+    def VerbChecker(self,eng,spa,ger): #GATHERS VERB'S RELATED DATA
+        self.data_verbs_spanish=self.VerbCheckerSpanish(spa) #SPANISH DATA
+        print("SPANISH DATA -- COMPLETED")
+        self.data_verbs_english=self.VerbCheckerEnglish(eng) #ENGLISH DATA
+        print("ENGLISH DATA -- COMPLETED")
+        self.data_verbs_german=self.VerbCheckerGerman(ger) #GERMAN DATA
+        print("GERMAN DATA -- COMPLETED")
+        self.total_data='{\n  '+'"'+self.eng+'":{'+self.data_verbs_english,self.data_verbs_german,self.data_verbs_spanish+'}'
+        print("DATA GATHERED")
+        temp=[]
+
+        for part in self.total_data:
+            part=part.replace('\\',"").replace("'",'"')
+            temp.append(part)
+        data="\n".join(temp)
+        return data
+
         
         def FillSpanishDataTemplate(self): #Filling the template with verb's data.
             data_verbs_spanish=(template_spanish_verb).format(self.spa_definition,self.spa_is_regular,self.spa)
@@ -269,12 +314,20 @@ class Verb:
 
 
 
+
 #instance
 play=Verb('play','jugar','spielen')
 spa=play.spa
 eng=play.eng
 ger=play.ger
 #Search and organize data.
+
+data=play.VerbChecker(eng,spa,ger)
+
+PushVerb(eng,data)
+
+
+
 play.VerbChecker(eng,spa,ger)
 
 
