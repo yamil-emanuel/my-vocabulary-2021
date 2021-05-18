@@ -259,6 +259,7 @@ class Verb:
                 return 0 #no
             else:
                 return 1 #yes
+
         
         def FillSpanishDataTemplate(self): #Filling the template with verb's data.
             data_verbs_spanish=(template_spanish_verb).format(self.spa_definition,self.spa_is_regular,self.spa)
@@ -398,18 +399,63 @@ class Noun:
         self.spa=spa
         self.ger=ger
 
+        
+        def FillSpanishDataTemplate(self): #Filling the template with verb's data.
+            data_verbs_spanish=(template_spanish_verb).format(self.spa_definition,self.spa_is_regular,self.spa)
+            return data_verbs_spanish
+
+
+
+        self.spa_definition=Definition()
+        self.spa_is_regular=RegularSpanish()
+        self.data_verbs_spanish=FillSpanishDataTemplate(self)
+        return self.data_verbs_spanish
+
+    def VerbChecker(self,eng,spa,ger): #GATHERS VERB'S RELATED DATA
+        self.data_verbs_spanish=self.VerbCheckerSpanish(spa) #SPANISH DATA
+        self.data_verbs_english=self.VerbCheckerEnglish(eng) #ENGLISH DATA
+        self.data_verbs_german=self.VerbCheckerGerman(ger) #GERMAN DATA
+        self.total_data='{\n  '+'"'+self.eng+'":{'+self.data_verbs_english,self.data_verbs_german,self.data_verbs_spanish+'}'
+        
+        for part in self.total_data:
+            part=part.replace('\\',"").replace("'",'"')
+            print(part)
+
+
+
 
 def VerbProcessor(eng,spa,ger):
     word=Verb(eng,spa,ger)
     data=word.VerbChecker(word.eng, word.spa, word.ger)
     PushVerb(word.eng,data)
 
+
 def AdjectiveProcessor(eng,spa,ger):
     word=Adjective(eng,spa,ger)
     data=word.AdjectiveChecker(word.eng,word.spa,word.ger)
     PushVerb(word.eng,data)
 
+#instance
+play=Verb('play','jugar','spielen')
+spa=play.spa
+eng=play.eng
+ger=play.ger
+#Search and organize data.
+
+data=play.VerbChecker(eng,spa,ger)
+
+
+
 
 
 #AdjectiveProcessor('fast','rápido','schnell')
 #VerbProcessor('')
+
+
+play.VerbChecker(eng,spa,ger)
+
+
+
+#print it.
+#print(play.ger_prepositions, play.eng_prepositions)
+
