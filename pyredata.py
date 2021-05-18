@@ -14,5 +14,11 @@ db=firebase.database()
 
 def PushVerb(eng,data): #CONVERT DATA (STR2DIC)% PUSH IT INTO /vocabulary/verbs/... 
   data=eval(data)
-  db.child("vocabulary").child("verbs").set(data)
+  db.child("vocabulary").child("verbs").child(eng).set(data)
   print("THE DATA WAS UPLOADED SUCCESFULLY")
+
+def PushAdjective(eng,data):
+  db.child("vocabulary").child("adjectives").child(eng).set(data)
+  print("done")
+
+

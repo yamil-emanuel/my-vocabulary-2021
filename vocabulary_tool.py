@@ -272,34 +272,144 @@ class Verb:
         return self.data_verbs_spanish
 
     def VerbChecker(self,eng,spa,ger): #GATHERS VERB'S RELATED DATA
+
         self.data_verbs_spanish=self.VerbCheckerSpanish(spa) #SPANISH DATA
-        print("SPANISH DATA -- COMPLETED")
+        sdc="SPANISH DATA -{}- COMPLETED"
+        print((sdc).format(spa))
+
         self.data_verbs_english=self.VerbCheckerEnglish(eng) #ENGLISH DATA
-        print("ENGLISH DATA -- COMPLETED")
+        edc="ENGLISH DATA -{}- COMPLETED"
+        print((edc).format(eng))
+
         self.data_verbs_german=self.VerbCheckerGerman(ger) #GERMAN DATA
-        print("GERMAN DATA -- COMPLETED")
-        self.total_data='{\n  '+'"'+self.eng+'":{'+self.data_verbs_english,self.data_verbs_german,self.data_verbs_spanish+'}'
-        print("DATA GATHERED")
-        temp=[]
+        gdc="GERMAN DATA -{}- COMPLETED"
+        print((gdc).format(ger))
 
-        for part in self.total_data:
-            part=part.replace('\\',"").replace("'",'"')
-            temp.append(part)
-        data="\n".join(temp)
-        return data
+        total_data=self.data_verbs_english+'\n'+self.data_verbs_german+'\n'+self.data_verbs_spanish
+        
+        return total_data
+
+class Adjective:
+    def __init__(self,eng,spa,ger):
+        self.eng=eng
+        self.spa=spa
+        self.ger=ger
+        self.eng_definition=None
+        self.spa_definition=None
+        self.ger_definition=None
+
+    def EnglishChecker(self,eng):
+        def Definition(eng):
+            url_definition=requests.get(('https://www.lexico.com/en/definition/{}').format(self.eng))
+            soup_definition_english = BeautifulSoup(url_definition.content, 'lxml')
+            raw_data=list(soup_definition_english.find_all(attrs={'class':'ind'}))
+            final_data=raw_data[0].get_text()
+
+            return final_data    
+        
+        def FillEnglishTemplate(self):
+            self.eng_definition=Definition(eng) 
+            eng_data=template_eng_adjective.format(self.eng_definition,self.eng)
+            return eng_data
+
+
+        self.eng_definition=Definition(eng)    
+        eng_data=FillEnglishTemplate(self)        
+        return eng_data
+
+    def SpanishChecker(self,spa):
+        def Definition(spa):
+            #making request
+            url_definition=requests.get(('https://dle.rae.es/{}?m=form').format(self.spa))
+            soup_definition_spanish = BeautifulSoup(url_definition.content, 'lxml')
+            #Get relevant data spanish definition of the verb.
+            raw_data=(soup_definition_spanish.find_all(attrs={'class':'j'}))
+            #Cleaning the data.
+            raw_data=raw_data[0].get_text()
+            filtered_data=(raw_data.split(' '))[2:]
+            definition= " ".join(filtered_data)
+            return definition
+
+        def FillSpanishTemplate(self):
+            self.spa_definition=Definition(spa)
+            spa_data=template_spa_adjective.format(self.spa_definition,self.spa)
+            return spa_data
+
+        spa_data=FillSpanishTemplate(self)
+        return spa_data
+
+    def GermanChecker(self,ger):
+        def Definition(self,ger):
+            if "ü" in self.ger:
+                ger_umlaud_correction=self.ger.replace("ü","ue")
+                url_definition=requests.get(('https://www.duden.de/rechtschreibung/{}').format(ger_umlaud_correction))
+
+            elif "ö" in self.ger:
+                ger_umlaud_correction=self.ger.replace("ö","oe")
+                url_definition=requests.get(('https://www.duden.de/rechtschreibung/{}').format(ger_umlaud_correction)) 
+
+            elif "ä" in self.ger:
+                ger_umlaud_correction=self.ger.replace("ä","ae")
+                url_definition=requests.get(('https://www.duden.de/rechtschreibung/{}').format(ger_umlaud_correction)) 
+
+            elif "ß" in self.ger:
+                ger_umlaud_correction=self.ger.replace("ß","sz")
+                url_definition=requests.get(('https://www.duden.de/rechtschreibung/{}').format(ger_umlaud_correction))
+
+            else:
+                url_definition=requests.get(('https://www.duden.de/rechtschreibung/{}').format(self.ger))
+
+            soup_definition_german = BeautifulSoup(url_definition.content, 'lxml')
+            #Get relevant data for the R's functions (RegularCheck and ReflexiveCheck).
+            raw_data=list(soup_definition_german.find_all(attrs={'class':'enumeration__text'}))
+            final_data=raw_data[0].get_text()
+
+            return final_data
+        
+        def FillGermanTemplate(self):
+            self.ger_definition=Definition(self,ger)
+            ger_data=template_ger_adjective.format(self.ger_definition,self.ger)
+
+            return ger_data
+
+        ger_data=FillGermanTemplate(self)
+        return ger_data
+            
+    def AdjectiveChecker(self,eng,spa,ger):
+
+        self.data_adjectives_eng=self.EnglishChecker(self) #ENG DATA IN TEMPLATE
+        edc="ENGLISH DATA -{}- COMPLETED"
+        print((edc).format(self.eng))
+
+        self.data_adjectives_spa=self.SpanishChecker(self) #SPA DATA IN TEMPLATE
+        sdc="SPANISH DATA -{}- COMPLETED"
+        print((sdc).format(self.spa))
+
+        self.data_adjectives_ger=self.GermanChecker(self.ger) #GER DATA
+        gdc="GERMAN DATA -{}- COMPLETED"
+        print((gdc).format(self.ger))
+
+        self.total_data=self.data_adjectives_eng+'\n'+self.data_adjectives_spa+'\n'+self.data_adjectives_ger 
+        return self.total_data
+
+class Noun:
+    def __init__(self,eng,spa,ger):
+        self.eng=eng
+        self.spa=spa
+        self.ger=ger
+
+
+def VerbProcessor(eng,spa,ger):
+    word=Verb(eng,spa,ger)
+    data=word.VerbChecker(word.eng, word.spa, word.ger)
+    PushVerb(word.eng,data)
+
+def AdjectiveProcessor(eng,spa,ger):
+    word=Adjective(eng,spa,ger)
+    data=word.AdjectiveChecker(word.eng,word.spa,word.ger)
+    PushVerb(word.eng,data)
 
 
 
-#instance
-play=Verb('play','jugar','spielen')
-spa=play.spa
-eng=play.eng
-ger=play.ger
-#Search and organize data.
-data=play.VerbChecker(eng,spa,ger)
-
-PushVerb(eng,data)
-
-
-#print it.
-#print(play.ger_prepositions, play.eng_prepositions)
+#AdjectiveProcessor('fast','rápido','schnell')
+#VerbProcessor('')
