@@ -4,7 +4,7 @@ import requests
 from bs4 import BeautifulSoup
 from GrammarData import *
 from pyredata import *
-
+import re
 
 
 #REFLEXIVEENGLISH, PREPOSITIONSSPANISH, REFLEXIVESPANISH
@@ -393,11 +393,7 @@ class Adjective:
         self.total_data=self.data_adjectives_eng+'\n'+self.data_adjectives_spa+'\n'+self.data_adjectives_ger 
         return self.total_data
 
-class Noun:
-    def __init__(self,eng,spa,ger):
-        self.eng=eng
-        self.spa=spa
-        self.ger=ger
+
 
         
         def FillSpanishDataTemplate(self): #Filling the template with verb's data.
@@ -421,6 +417,134 @@ class Noun:
             part=part.replace('\\',"").replace("'",'"')
             print(part)
 
+class Noun:
+    def __init__(self,eng,spa,ger):
+        self.eng=eng
+        self.spa=spa
+        self.ger=ger
+
+    def EnglishChecker(self,eng):
+        def Definition(eng):
+            url_definition=requests.get(('https://www.lexico.com/en/definition/{}').format(self.eng))
+            soup_definition_english = BeautifulSoup(url_definition.content, 'lxml')
+            raw_data=list(soup_definition_english.find_all(attrs={'class':'ind'}))
+            final_data=raw_data[0].get_text()
+
+            return final_data
+
+        def Plural(self):
+
+            if re.search("s$",self.eng) or re.search("x$",self.eng) or re.search("ch$",self.eng) or re.search("sh$",self.eng):
+                eng_plural=eng+"es"
+                return eng_plural
+                
+            elif re.search("y$",self.eng) and self.eng[-2] not in vowels:
+                eng_plural=eng[:-1]+"ies"
+                return eng_plural
+            
+            else:
+                eng_plural=self.eng+"s"
+                return eng_plural      
+        
+        self.eng_definition=Definition(self)
+        self.eng_plural=Plural(self)
+
+    def SpanishChecker(self,spa):
+        def Definition(spa):
+
+            #making request
+            url_definition=requests.get(('https://dle.rae.es/{}?m=form').format(self.spa))
+            soup_definition_spanish = BeautifulSoup(url_definition.content, 'lxml')
+            #Get relevant data spanish definition.
+            raw_data_definition=(soup_definition_spanish.find_all(attrs={'class':'j'}))
+            #Cleaning the data.
+            raw_data_definition=raw_data_definition[0].get_text()
+            filtered_data_definition=(raw_data_definition.split(' '))[2:]
+            definition= " ".join(filtered_data_definition)
+
+            #Get word's gender data.
+            raw_data_gender=(soup_definition_spanish.find_all(attrs={'class':'d'}))
+            raw_data_gender=raw_data_gender[0].get_text()
+            if "f" in raw_data_gender:
+                return definition,"f"
+            else:
+                return definition,"m"
+            
+        def Articles(self):
+            gender=self.spa_gender
+            if gender=="f":
+                return "la","las"
+            elif gender=="m":
+                return "lo","los"
+
+        def Plural(self):
+            
+            if re.search("ch$",self.spa) or re.search("s$",self.spa) or re.search("x$",self.spa):
+                plural=self.spa+"es"
+                return plural
+
+            elif re.search("y$",self.spa) and self.spa [-2] in vowels:
+                plural=self.spa+"es"
+                return plural
+
+            elif re.search("í$",self.spa) or re.search("ú$",self.spa):
+                plural=self.spa+"es"
+                return plural
+
+            elif re.search("é",self.spa):
+                plural=self.spa.replace('é','e')+"s"
+                return plural
+                
+            elif self.spa[-1] not in vowels:
+                if re.search("ción$",self.spa):
+                    plural=self.spa.replace("ó","o")+"es"
+                    return plural
+
+                else:    
+                    plural=self.spa+"es"
+                    return plural
+
+            else:
+                return self.spa+"s"
+
+        self.spa_definition,self.spa_gender=Definition(spa)
+        self.spa_article_singular, self.spa_article_plural = Articles(self)
+        self.spa_plural=Plural(self)
+
+
+    def GermanChecker(self,ger):
+        def Definition(self,ger):
+            if "ü" in self.ger:
+                ger_umlaud_correction=self.ger.replace("ü","ue")
+                url_definition=requests.get(('https://www.duden.de/rechtschreibung/{}').format(ger_umlaud_correction))
+
+            elif "ö" in self.ger:
+                ger_umlaud_correction=self.ger.replace("ö","oe")
+                url_definition=requests.get(('https://www.duden.de/rechtschreibung/{}').format(ger_umlaud_correction)) 
+
+            elif "ä" in self.ger:
+                ger_umlaud_correction=self.ger.replace("ä","ae")
+                url_definition=requests.get(('https://www.duden.de/rechtschreibung/{}').format(ger_umlaud_correction)) 
+
+            elif "ß" in self.ger:
+                ger_umlaud_correction=self.ger.replace("ß","sz")
+                url_definition=requests.get(('https://www.duden.de/rechtschreibung/{}').format(ger_umlaud_correction))
+
+            else:
+                url_definition=requests.get(('https://www.duden.de/rechtschreibung/{}').format(self.ger))
+
+            soup_definition_german = BeautifulSoup(url_definition.content, 'lxml')
+            #Get relevant data for the R's functions (RegularCheck and ReflexiveCheck).
+            raw_data=list(soup_definition_german.find_all(attrs={'class':'enumeration__text'}))
+            final_data=raw_data[0].get_text()
+
+            return final_data
+        
+            
+
+
+        self.ger_defitinition=Definition(self,ger)
+
 
 
 
@@ -433,29 +557,17 @@ def VerbProcessor(eng,spa,ger):
 def AdjectiveProcessor(eng,spa,ger):
     word=Adjective(eng,spa,ger)
     data=word.AdjectiveChecker(word.eng,word.spa,word.ger)
-    PushVerb(word.eng,data)
+    PushAdjective(word.eng,data)
 
-#instance
-play=Verb('play','jugar','spielen')
-spa=play.spa
-eng=play.eng
-ger=play.ger
-#Search and organize data.
 
-data=play.VerbChecker(eng,spa,ger)
+
+if __name__ == "__main__":
+    #AdjectiveProcessor('slow','lento','langsam')
+    #VerbProcessor('')
+    car=Noun("car","automóvil","Wagen")
 
 
 
 
 
-#AdjectiveProcessor('fast','rápido','schnell')
-#VerbProcessor('')
-
-
-play.VerbChecker(eng,spa,ger)
-
-
-
-#print it.
-#print(play.ger_prepositions, play.eng_prepositions)
 
