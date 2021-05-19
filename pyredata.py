@@ -17,9 +17,14 @@ def PushVerb(eng,data): #CONVERT DATA (STR2DIC)% PUSH IT INTO /vocabulary/verbs/
   db.child("vocabulary").child("verbs").child(eng).set(data)
   print("THE DATA WAS UPLOADED SUCCESFULLY \n")
 
-def PushAdjective(eng,data):
+def PushAdjective(eng,data):#CONVERT DATA (STR2DIC)% PUSH IT INTO /vocabulary/adjectives/
   data=eval(data)
   db.child("vocabulary").child("adjectives").child(eng).set(data)
+  print("THE DATA WAS UPLOADED SUCCESFULLY \n")
+
+def PushNoun(eng,data):#CONVERT DATA (STR2DIC)% PUSH IT INTO /vocabulary/nouns/
+  data=eval(data)
+  db.child("vocabulary").child("nouns").child(eng).set(data)
   print("THE DATA WAS UPLOADED SUCCESFULLY \n")
 
 def AllVerbs():

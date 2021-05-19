@@ -5,9 +5,8 @@ from bs4 import BeautifulSoup
 from GrammarData import *
 from pyredata import *
 import re
+import csv
 
-
-#REFLEXIVEENGLISH, PREPOSITIONSSPANISH, REFLEXIVESPANISH
 
 
 class Verb:
@@ -446,8 +445,14 @@ class Noun:
                 eng_plural=self.eng+"s"
                 return eng_plural      
         
+        def FillEnglishTemplate(self):
+            eng_data=template_eng_noun.format(self.eng_definition, "None",self.eng_plural, self.eng)
+            return eng_data
+
         self.eng_definition=Definition(self)
         self.eng_plural=Plural(self)
+        self.eng_noun_data=FillEnglishTemplate(self)
+        return self.eng_noun_data
 
     def SpanishChecker(self,spa):
         def Definition(spa):
@@ -465,17 +470,30 @@ class Noun:
             #Get word's gender data.
             raw_data_gender=(soup_definition_spanish.find_all(attrs={'class':'d'}))
             raw_data_gender=raw_data_gender[0].get_text()
-            if "f" in raw_data_gender:
-                return definition,"f"
-            else:
-                return definition,"m"
+            if "y f." in raw_data_gender:
+                gender="mf"
+            elif "f." in raw_data_gender:
+                gender="f"
+            elif "m.":
+                gender="m"
+
+            if "y f." in definition:
+                definition=definition.replace("y f. ","")
+            elif "m." in definition:
+                definition=definition.replace("m.","")
+            elif "f." in definition:
+                definition=definition.replace("f.","")
+            
+            return definition,gender
             
         def Articles(self):
             gender=self.spa_gender
             if gender=="f":
                 return "la","las"
             elif gender=="m":
-                return "lo","los"
+                return "el","los"
+            elif gender=="mf":
+                return "el/la","los/las"
 
         def Plural(self):
             
@@ -507,10 +525,16 @@ class Noun:
             else:
                 return self.spa+"s"
 
+        def FillSpanishTemplate(self):
+            spa_noun_data=template_spa_noun.format(self.spa_article_singular, self.spa_article_plural, self.spa_definition, "None", self.spa_plural, self.spa)
+            return spa_noun_data
+
+
         self.spa_definition,self.spa_gender=Definition(spa)
         self.spa_article_singular, self.spa_article_plural = Articles(self)
         self.spa_plural=Plural(self)
-
+        self.spa_noun_data=FillSpanishTemplate(self)
+        return self.spa_noun_data
 
     def GermanChecker(self,ger):
         def Definition(self,ger):
@@ -540,12 +564,51 @@ class Noun:
 
             return final_data
         
+        def ExtraData(self):
+            url_extradata=requests.get(('https://www.verbformen.com/declension/nouns/{}.htm').format(self.ger))
+            soup_extradata_german = BeautifulSoup(url_extradata.content, 'lxml')
             
+            #Gathering the plural.
+            raw_data=list(soup_extradata_german.find_all(attrs={'class':'vStm rCntr'}))
+            plural_raw=(raw_data[0].get_text())
+            plural_raw=plural_raw.split("·")
+            plural=plural_raw[1].replace("\n","")
 
+            #Gathering the article
+            article_raw= list(soup_extradata_german.find_all(attrs={'class':'vGrnd rCntr'}))
+            article_raw=article_raw[0].get_text()
+            article_raw=article_raw.split(" ")
+            article=article_raw[0].replace("\n","")
+            
+            
+            
+            
+            return article,plural
+            
+        def FillGermanTemplate(self):
+            ger_data=template_ger_noun.format(self.ger_article,self.ger_definition,"None",self.ger_plural, self.ger)
+            return ger_data
 
-        self.ger_defitinition=Definition(self,ger)
+        self.ger_definition=Definition(self,ger)
+        self.ger_article,self.ger_plural=ExtraData(self)
+        self.ger_data=FillGermanTemplate(self)
+        return self.ger_data
 
+    def NounChecker(self,eng,spa,ger):
+        self.eng_noun_data=self.EnglishChecker(eng) #ENGLISH DATA
+        edc="ENGLISH DATA -{}- COMPLETED"
+        print((edc).format(eng))
+        
+        self.spa_noun_data=self.SpanishChecker(spa) #SPANISH DATA
+        sdc="SPANISH DATA -{}- COMPLETED"
+        print((sdc).format(spa))
+        
+        self.ger_noun_data=self.GermanChecker(ger) #GERMAN DATA
+        gdc="GERMAN DATA -{}- COMPLETED"
+        print((gdc).format(ger))
 
+        final_data= self.eng_noun_data +'\n'+ self.spa_noun_data + '\n' + self.ger_noun_data
+        return final_data
 
 
 def VerbProcessor(eng,spa,ger):
@@ -553,21 +616,33 @@ def VerbProcessor(eng,spa,ger):
     data=word.VerbChecker(word.eng, word.spa, word.ger)
     PushVerb(word.eng,data)
 
-
 def AdjectiveProcessor(eng,spa,ger):
     word=Adjective(eng,spa,ger)
     data=word.AdjectiveChecker(word.eng,word.spa,word.ger)
     PushAdjective(word.eng,data)
 
-
+def NounProcessor(eng,spa,ger):
+    word=Noun(eng,spa,ger)
+    data=word.NounChecker(word.eng,word.spa,word.ger)
+    PushNoun(word.eng,data)
 
 if __name__ == "__main__":
-    #AdjectiveProcessor('slow','lento','langsam')
-    #VerbProcessor('')
-    car=Noun("car","automóvil","Wagen")
+    with open ("VOCABULARY.csv","r") as vocabulary_csv:
+        data_input=csv.reader(vocabulary_csv, delimiter=',', quotechar='|')
+        for row in data_input:
+
+            if row[0]=='NOUN':
+                NounProcessor(row[1],row[2],row[3])
+            
+            elif row[0]=='ADJECTIVE':
+                AdjectiveProcessor(row[1],row[2],row[3])
+            
+            elif row[0]=="VERB":
+                VerbProcessor(row[1],row[2],row[3])
 
 
 
+#3)DOCUMENTAR MEJOR
 
 
 

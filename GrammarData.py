@@ -61,20 +61,20 @@ template_eng_noun='''
   }},
 '''
 
-template_spa_noun='''  "GER" : {{
+template_spa_noun='''  "SPA" : {{
     "ARTICLE" : {{
-      "SINGULAR" : "{}"
+      "SINGULAR" : "{}",
+      "PLURAL": "{}"
     }},
     "DEFINITION" : "{}",
     "EXAMPLE" : "{}",
     "PLURAL" : "{}",
-    "GER" : "{}"
+    "SPA" : "{}"
   }},
 '''
 
-template_ger_noun='''  "SPA" : {{
+template_ger_noun='''  "GER" : {{
     "ARTICLE" : {{
-      "PLURAL" : "{}",
       "SINGULAR" : "{}"
     }},
     "DEFINITION" : "{}",
