@@ -8,6 +8,16 @@ import re
 import csv
 
 
+def CreateErrorLog():
+    if error_log != None:
+        with open ("ERROR_LOG.txt","a") as error_log_file:
+            for error in error_log:
+                error_log_file.write(error)
+            error_log_file.close()
+
+    else:
+        pass
+
 
 class Verb:
     def __init__(self,eng,spa,ger):
@@ -30,8 +40,14 @@ class Verb:
 
     def VerbCheckerGerman(self,ger):
         #Pulling Information for RegularCheck.
-        url_r=requests.get(('https://www.verbformen.com/conjugation/?w={}').format(ger))
-        soup = BeautifulSoup(url_r.content, 'lxml')
+        if 'ü' in ger:
+            ger_umlaud=ger.replace("ü","u3")
+            url_r=requests.get(('https://www.verbformen.com/conjugation/?w={}').format(ger_umlaud))
+            soup = BeautifulSoup(url_r.content, 'lxml')
+        else:
+            url_r=requests.get(('https://www.verbformen.com/conjugation/?w={}').format(ger))
+            soup = BeautifulSoup(url_r.content, 'lxml')
+
 
         #Get relevant data for RegularCheck.
         r_data=soup.find_all('p')[0].get_text()
@@ -48,20 +64,20 @@ class Verb:
 
         def ReflexiveCheck(self,ger_prepositions):
             #If 'sich' exists in preposition's dictionary means that the verb can be used reflexively. 
-            if 'sich' in ger_prepositions.keys():
-                return 1 #yes
-            else: 
-                return 0 #no
+            try:
+                if 'sich' in ger_prepositions.keys():
+                    return 1 #yes
+                else: 
+                    return 0 #no
+            except AttributeError:
+                print(("Critical Error at {}'s german prepositions. Data not found.").format(self.eng))
+                error_message=("{} -GERMAN-VERB-REFLEXIVE DATA IS MISSING.\n").format(self.eng)
+                error_log.append(error_message)
+                return "NOT FOUND"
 
         def PrepositionsAndCasesCheck():
             #Get the preposition's data.
-            if 'ü' in ger:
-                ger_umlaud=ger.replace("ü","u3")
-                url_p=requests.get(('https://www.woerter.net/verbs/usages/{}.html').format(ger_umlaud))
-                soup = BeautifulSoup(url_r.content, 'lxml')
-            else:
-                url_p=requests.get(('https://www.woerter.net/verbs/usages/{}.html').format(ger))
-                soup = BeautifulSoup(url_r.content, 'lxml')
+            soup = BeautifulSoup(url_r.content, 'lxml')
 
             #Filtering the results
             p_data=soup.find_all('p')[6].get_text()
@@ -71,12 +87,28 @@ class Verb:
             prepositions_raw=p_data.split(',')
             #german_prepositions_dictionary will contain the processed information as {preposition:case}
             german_prepositions_dictionary={}
-            for x in prepositions_raw:     
-                x=x.split('+')
-                if x[0]!='acc.':
-                    german_prepositions_dictionary[x[0]]=x[1]
-                else:
-                    pass
+
+
+            for x in prepositions_raw:
+                if x == "als" or x == "wie":
+                    german_prepositions_dictionary[x]="1"
+                else:     
+                    x=x.split('+')
+                    
+                    if x[0]!='acc.':
+                        try:
+                            german_prepositions_dictionary[x[0]]=x[1]
+
+                        except IndexError:
+
+                            print(("Critical Error at {}'s german prepositions. Data not found.").format(self.eng))
+                            error_message=("{} - GERMAN-PREPOSITIONS DATA IS MISSING.\n").format(self.eng)
+                            error_log.append(error_message)
+                    else:
+                        german_prepositions_dictionary["acc"]="1"
+
+
+
             return german_prepositions_dictionary
 
         def PastCheck():
@@ -106,7 +138,16 @@ class Verb:
             soup_definition_german = BeautifulSoup(url_definition.content, 'lxml')
             #Get relevant data for the R's functions (RegularCheck and ReflexiveCheck).
             raw_data=list(soup_definition_german.find_all(attrs={'class':'enumeration__text'}))
-            final_data=raw_data[0].get_text()
+            
+            try:
+                final_data=raw_data[0].get_text()
+
+            except IndexError:
+                print(("Critical Error at {}'s german definition. Data not found.").format(self.eng))
+                final_data="NOT FOUND"
+                error_message=("{} - GERMAN-DEFINITION DATA IS MISSING\n").format(self.eng)
+                error_log.append(error_message)
+            
             return final_data
 
         def FillGermanDataTemplate(self): #Filling the template with verb's data.
@@ -115,9 +156,14 @@ class Verb:
 
             #Converting every preposition in the list into dictionaries keys, value will be filled manually. 
             for element in self.ger_prepositions:
-                temp=('''{{"CASE":"{}","EXAMPLE":"None"}}''').format(self.ger_prepositions.get(element))
-                #temp=str(temp)
-                ger_prepositions_final[element]=temp
+                try:
+                    temp=('''{{"CASE":"{}","EXAMPLE":"None"}}''').format(self.ger_prepositions.get(element))
+                    ger_prepositions_final[element]=temp
+                except AttributeError:
+                    print(("Critical Error at {}'s prepositions. Data not found.").format(self.eng))
+                    error_message=("{} -GERMAN-PREPOSITION DATA IS MISSING.\n").format(self.eng)
+                    error_log.append(error_message)
+                    
 
             ger_prepositions_final=str(ger_prepositions_final).replace("'{","{").replace("}'",'}')
 
@@ -362,11 +408,17 @@ class Adjective:
             soup_definition_german = BeautifulSoup(url_definition.content, 'lxml')
             #Get relevant data for the R's functions (RegularCheck and ReflexiveCheck).
             raw_data=list(soup_definition_german.find_all(attrs={'class':'enumeration__text'}))
-            final_data=raw_data[0].get_text()
+            try:
+                final_data=raw_data[0].get_text()
+            except IndexError:
+                print(("Critical Error at {}'s german definition. Data not found.").format(self.eng))
+                final_data="NOT FOUND"
+                error_message=("{} - GERMAN-DEFINITION DATA IS MISSING.\n").format(self.eng)
+                error_log.append(error_message)
 
             return final_data
         
-        def FillGermanTemplate(self):
+        def FillGermanTemplate(self):          
             self.ger_definition=Definition(self,ger)
             ger_data=template_ger_adjective.format(self.ger_definition,self.ger)
 
@@ -560,7 +612,12 @@ class Noun:
             soup_definition_german = BeautifulSoup(url_definition.content, 'lxml')
             #Get relevant data for the R's functions (RegularCheck and ReflexiveCheck).
             raw_data=list(soup_definition_german.find_all(attrs={'class':'enumeration__text'}))
-            final_data=raw_data[0].get_text()
+            try:
+                final_data=raw_data[0].get_text()
+            except IndexError:
+                print(("Critical Error at {}'s german definition. Data not found.").format(self.eng))
+                final_data="NOT FOUND"
+                error_message=("{} - GERMAN-DEFINITION DATA IS MISSING.\n").format(self.eng)
 
             return final_data
         
@@ -627,22 +684,40 @@ def NounProcessor(eng,spa,ger):
     PushNoun(word.eng,data)
 
 if __name__ == "__main__":
+
+    error_log=[]
+
+    #OPEN THE VOCABULARY FILE, READ THE WORDS AND PROCESS THEM.
     with open ("VOCABULARY.csv","r") as vocabulary_csv:
         data_input=csv.reader(vocabulary_csv, delimiter=',', quotechar='|')
         for row in data_input:
+            eng=row[1].lower()
+            spa=row[2].lower()
+            ger=row[3].lower()
+            word_type=row[0].upper()
 
-            if row[0]=='NOUN':
-                NounProcessor(row[1],row[2],row[3])
+            if word_type=='NOUN':
+                ger=ger.capitalize()
+                NounProcessor(eng,spa,ger)
             
-            elif row[0]=='ADJECTIVE':
-                AdjectiveProcessor(row[1],row[2],row[3])
+            elif word_type=='ADJECTIVE':
+                AdjectiveProcessor(eng,spa,ger)
             
-            elif row[0]=="VERB":
-                VerbProcessor(row[1],row[2],row[3])
+            elif word_type=="VERB":
+                VerbProcessor(eng,spa,ger)
+    
+    #OVERWRITE THE VOCABULARY.CSV FILE AND LEAVE IT EMPTY.
+    with open ("VOCABULARY.csv","w") as vocabulary_csv:
+        vocabulary_writer=csv.writer(vocabulary_csv, delimiter=",", quotechar='|')
+        vocabulary_writer.writerow(["WORD_TYPE","ENGLISH","SPANISH","GERMAN"])
+    
+    CreateErrorLog()
+
+
+    
 
 
 
-#3)DOCUMENTAR MEJOR
+#---------------------------#
 
-
-
+## CSV file. url for pushing the missing data. gathering it. run a function that automatically upload the missing data. 

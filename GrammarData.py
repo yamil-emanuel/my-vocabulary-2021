@@ -7,8 +7,8 @@ template_english_verb='''
   "ENG" : {{
     "DEFINITION":"{}",
     "ENG" :"{}",
-    "IS_REGULAR" : {},
-    "IS_TRANSITIVE" : {},
+    "IS_REGULAR" : '{}',
+    "IS_TRANSITIVE" : '{}',
     "PREPOSITIONS" : {}
     }},'''
 
@@ -17,15 +17,15 @@ template_german_verb='''
     "AXULIAR_VERB" : "{}",
     "DEFINITION" : "{}",
     "GER" : "{}",
-    "IS_REFLEXIBLE": {},
-    "IS_SEPARABLE" : {},
+    "IS_REFLEXIBLE": '{}',
+    "IS_SEPARABLE" : '{}',
     "PREPOSITIONS" : {}
 }},'''
 
 template_spanish_verb='''
     "SPA" : {{
-      "DEFINITION" : "{}",
-      "IS_REGULAR" : {},
+      "DEFINITION" : '{}',
+      "IS_REGULAR" : '{}',
       "SPA" : "{}"}}
 }}'''
 
